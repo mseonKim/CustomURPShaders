@@ -47,7 +47,7 @@ Shader "Custom/CustomLit"
 
         Pass
         {
-            Name "Unlit"
+            Name "Customlit"
 
             AlphaToMask[_AlphaToMask]
 
