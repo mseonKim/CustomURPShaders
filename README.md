@@ -6,6 +6,7 @@ The shader file can be found in Assets/Shaders/CustomLit.shader
 a. Apply BRDF
 
 Diffuse, Amibent, Specular, BlinnPhong
+
 ![BlinnPhong](/Images/BlinnPhong.png)
 
 
