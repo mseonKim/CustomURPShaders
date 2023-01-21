@@ -8,7 +8,11 @@ Shader "Custom/CustomLit"
 
         // Custom Lit Values
         _SpecColor("Specular", Color) = (0.2, 0.2, 0.2, 1)
+        _EmissionColor("EmissionColor", Color) = (0.2, 0.2, 0.2, 1)
+        _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
+
+        [ToggleOff] _SimpleLitMode("SimpleLitMode", Float) = 1.0
 
         // BlendMode
         _Surface("__surface", Float) = 0.0
@@ -54,6 +58,11 @@ Shader "Custom/CustomLit"
             #pragma shader_feature_local_fragment _SURFACE_TYPE_TRANSPARENT
             #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _ALPHAMODULATE_ON
+
+            // ---------------------------
+            // Custom Keywords
+            // #pragma shader_feature_local_fragment _EMISSION
+            // #pragma shader_feature_local_fragment _SPECULAR_SETUP
 
             // -------------------------------------
             // Unity defined keywords

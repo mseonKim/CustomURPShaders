@@ -8,6 +8,8 @@
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
 #endif
 
+// TODO: Replace this with a keyword
+half _SimpleLitMode;
 
 
 struct Attributes
@@ -43,7 +45,7 @@ void InitializeInputData(Varyings input, out InputData inputData)
     inputData.fogCoord = 0;
     inputData.vertexLighting = half3(0, 0, 0);
     inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, inputData.normalWS);;
-    inputData.normalizedScreenSpaceUV = 0;
+    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
     inputData.shadowMask = half4(1, 1, 1, 1);
 }
 
@@ -75,37 +77,61 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
     half2 uv = input.uv;
-    half4 texColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv);
-    half3 color = texColor.rgb * _BaseColor.rgb;
-    half alpha = texColor.a * _BaseColor.a;
-
-    alpha = AlphaDiscard(alpha, _Cutoff);
-    color = AlphaModulate(color, alpha);
     
     InputData inputData;
     InitializeInputData(input, inputData);
     SETUP_DEBUG_TEXTURE_DATA(inputData, input.uv, _BaseMap);
 
+    SurfaceData surfaceData;
+    InitializeCustomLitSurfaceData(uv, surfaceData);
+
+    BRDFData brdfData;
+    InitializeBRDFData(surfaceData, brdfData);
 
 
-    Light light = GetMainLight();
+    Light mainLight = GetMainLight();
     half3 normal = inputData.normalWS;
 
-    
+    half4 finalColor = half4(0, 0, 0, surfaceData.alpha);
+    half3 blinnPhongColor = 0;
+    half3 fragPBRColor = 0;
+    AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
+
+// TODO: Create custom GUI for keywords
+// #if defined(_SIMPLE_LIT_MODE)
     //////////////////////////////////////////////////////////
     //                      Blinn Phong                     //
     //////////////////////////////////////////////////////////
+    half3 giColor = inputData.bakedGI;
+    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, giColor, aoFactor);
+    giColor *= surfaceData.albedo;
     // Diffuse Term
-    half3 diffuse = LightingLambert(light.color, light.direction, normal) * color;
+    half3 diffuse = LightingLambert(mainLight.color, mainLight.direction, normal) * surfaceData.albedo;
     // Specular Term
     half3 viewDirWS = inputData.viewDirectionWS;
-    half smoothness = exp2(10 * _Smoothness + 1);   // if _Smoothness == 0.5 then smoothness is 64 => pow(NdotH, 64)
-    half3 specular = LightingSpecular(light.color, light.direction, normal, viewDirWS, _SpecColor, smoothness);
+    half3 specular = LightingSpecular(mainLight.color, mainLight.direction, normal, viewDirWS, half4(surfaceData.specular, 1), surfaceData.smoothness);
     // GI
-    half3 indirectDiffuse = inputData.bakedGI;
+    blinnPhongColor = diffuse + specular + giColor;
 
-    half4 finalColor = half4(0, 0, 0, alpha);
-    finalColor.rgb = diffuse + specular + indirectDiffuse;
+// #else
+    ///////////////////////////////////////////////////////////////////
+    //                      UniversalFragmentPBR                     //
+    ///////////////////////////////////////////////////////////////////
+    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
+    BRDFData brdfDataClearCoat = CreateClearCoatBRDFData(surfaceData, brdfData);
+    LightingData lightingData = CreateLightingData(inputData, surfaceData);
+
+    lightingData.giColor = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
+                                              inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
+                                              inputData.normalWS, inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV);
+    lightingData.mainLightColor = LightingPhysicallyBased(brdfData, brdfDataClearCoat,
+                                                              mainLight,
+                                                              inputData.normalWS, inputData.viewDirectionWS,
+                                                              surfaceData.clearCoatMask, false);
+    fragPBRColor = lightingData.mainLightColor + lightingData.giColor;
+// #endif
+
+    finalColor.rgb = lerp(fragPBRColor, blinnPhongColor, _SimpleLitMode);
     outColor = finalColor;
 }
 
