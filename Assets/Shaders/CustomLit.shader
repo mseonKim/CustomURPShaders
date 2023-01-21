@@ -6,6 +6,10 @@ Shader "Custom/CustomLit"
         [MainColor] _BaseColor("Color", Color) = (1, 1, 1, 1)
         _Cutoff("AlphaCutout", Range(0.0, 1.0)) = 0.5
 
+        // Custom Lit Values
+        _SpecColor("Specular", Color) = (0.2, 0.2, 0.2, 1)
+        _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
+
         // BlendMode
         _Surface("__surface", Float) = 0.0
         _Blend("__mode", Float) = 0.0
@@ -62,11 +66,11 @@ Shader "Custom/CustomLit"
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fragment _ _WRITE_RENDERING_LAYERS
 
-            #pragma vertex UnlitPassVertex
-            #pragma fragment UnlitPassFragment
+            #pragma vertex CustomPassVertex
+            #pragma fragment CustomPassFragment
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitForwardPass.hlsl"
+            #include "CustomLitInput.hlsl"
+            #include "CustomLitForwardPass.hlsl"
             ENDHLSL
         }
 
@@ -291,5 +295,4 @@ Shader "Custom/CustomLit"
         }
     }
     FallBack "Hidden/Universal Render Pipeline/FallbackError"
-    CustomEditor "UnityEditor.Rendering.Universal.ShaderGUI.UnlitShader"
 }
