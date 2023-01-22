@@ -7,7 +7,7 @@ Shader "Custom/CustomLit"
         _Cutoff("AlphaCutout", Range(0.0, 1.0)) = 0.5
 
         // Custom Lit Values
-        _SpecColor("Specular", Color) = (0.2, 0.2, 0.2, 1)
+        _SpecColor("Specular", Color) = (0.5, 0.5, 0.5, 1)
         _EmissionColor("EmissionColor", Color) = (0.2, 0.2, 0.2, 1)
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
@@ -47,7 +47,8 @@ Shader "Custom/CustomLit"
 
         Pass
         {
-            Name "Customlit"
+            Name "CustomLit"
+            Tags { "LightMode" = "UniversalForward" }
 
             AlphaToMask[_AlphaToMask]
 

@@ -32,7 +32,7 @@ inline void InitializeCustomLitSurfaceData(float2 uv, out SurfaceData outSurface
     outSurfaceData.specular = specGloss.rgb;
     outSurfaceData.metallic = _Metallic;
 
-    outSurfaceData.smoothness = exp2(10 * specGloss.a + 1);   // if _Smoothness == 0.5 then smoothness is 64 => pow(NdotH, 64) in LightingSpecular()
+    outSurfaceData.smoothness = specGloss.a;
     outSurfaceData.emission = _EmissionColor.rgb;
 
     // Fill dummy values

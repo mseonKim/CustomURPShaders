@@ -25,8 +25,7 @@ struct Varyings
 {
     float2 uv : TEXCOORD0;
     float3 positionWS : TEXCOORD1;
-    float3 normalWS : TEXCOORD2;
-    float3 viewDirWS : TEXCOORD3;
+    half3 normalWS : TEXCOORD2;
     float4 positionCS : SV_POSITION;
     DECLARE_LIGHTMAP_OR_SH(staticLightmapUV, vertexSH, 4);
 
@@ -39,8 +38,8 @@ void InitializeInputData(Varyings input, out InputData inputData)
     inputData = (InputData)0;
 
     inputData.positionWS = input.positionWS;
-    inputData.normalWS = input.normalWS;
-    inputData.viewDirectionWS = input.viewDirWS;
+    inputData.normalWS = normalize(input.normalWS);
+    inputData.viewDirectionWS = SafeNormalize(GetWorldSpaceNormalizeViewDir(input.positionWS));
     inputData.shadowCoord = 0;
     inputData.fogCoord = 0;
     inputData.vertexLighting = half3(0, 0, 0);
@@ -59,10 +58,9 @@ Varyings CustomPassVertex(Attributes input)
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
 
-    output.positionWS = vertexInput.positionWS;
+    output.positionWS.xyz = vertexInput.positionWS;
     output.positionCS = vertexInput.positionCS;
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
-    output.viewDirWS = GetWorldSpaceNormalizeViewDir(vertexInput.positionWS);
     output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
 
     OUTPUT_LIGHTMAP_UV(input.staticLightmapUV, unity_LightmapST, output.staticLightmapUV);
@@ -102,33 +100,24 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     //////////////////////////////////////////////////////////
     //                      Blinn Phong                     //
     //////////////////////////////////////////////////////////
-    half3 giColor = inputData.bakedGI;
-    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, giColor, aoFactor);
-    giColor *= surfaceData.albedo;
     // Diffuse Term
     half3 diffuse = LightingLambert(mainLight.color, mainLight.direction, normal) * surfaceData.albedo;
     // Specular Term
     half3 viewDirWS = inputData.viewDirectionWS;
-    half3 specular = LightingSpecular(mainLight.color, mainLight.direction, normal, viewDirWS, half4(surfaceData.specular, 1), surfaceData.smoothness);
+    half smoothness = exp2(10 * surfaceData.smoothness + 1); // if _Smoothness == 0.5 then smoothness is 64 => pow(NdotH, 64) in LightingSpecular()
+    half3 specular = LightingSpecular(mainLight.color, mainLight.direction, normal, viewDirWS, half4(surfaceData.specular, 1), smoothness);
     // GI
+    half3 giColor = inputData.bakedGI;
+    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, giColor, aoFactor);
+    giColor *= surfaceData.albedo;
+
     blinnPhongColor = diffuse + specular + giColor;
 
 // #else
     ///////////////////////////////////////////////////////////////////
     //                      UniversalFragmentPBR                     //
     ///////////////////////////////////////////////////////////////////
-    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
-    BRDFData brdfDataClearCoat = CreateClearCoatBRDFData(surfaceData, brdfData);
-    LightingData lightingData = CreateLightingData(inputData, surfaceData);
 
-    lightingData.giColor = GlobalIllumination(brdfData, brdfDataClearCoat, surfaceData.clearCoatMask,
-                                              inputData.bakedGI, aoFactor.indirectAmbientOcclusion, inputData.positionWS,
-                                              inputData.normalWS, inputData.viewDirectionWS, inputData.normalizedScreenSpaceUV);
-    lightingData.mainLightColor = LightingPhysicallyBased(brdfData, brdfDataClearCoat,
-                                                              mainLight,
-                                                              inputData.normalWS, inputData.viewDirectionWS,
-                                                              surfaceData.clearCoatMask, false);
-    fragPBRColor = lightingData.mainLightColor + lightingData.giColor;
 // #endif
 
     finalColor.rgb = lerp(fragPBRColor, blinnPhongColor, _SimpleLitMode);
