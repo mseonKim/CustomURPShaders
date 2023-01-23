@@ -13,6 +13,7 @@ Shader "Custom/CustomLit"
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
 
         [ToggleOff] _SimpleLitMode("SimpleLitMode", Float) = 1.0
+        [ToggleOff] _UseEnvColor("UseEnvColor", Float) = 1.0
 
         // BlendMode
         _Surface("__surface", Float) = 0.0

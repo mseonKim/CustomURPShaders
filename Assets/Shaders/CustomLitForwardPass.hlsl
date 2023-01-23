@@ -10,6 +10,7 @@
 
 // TODO: Replace this with a keyword
 half _SimpleLitMode;
+half _UseEnvColor;
 
 
 struct Attributes
@@ -128,8 +129,24 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     // Diffuse = Lambert, Specular = Minimalist CookTorrance
     lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
 
+    /* 2. Environment Light (Color or CubeMap) */
+    // i. Color
+    half3 envColor = _GlossyEnvironmentColor.rgb * aoFactor.indirectAmbientOcclusion;
+
+    // ii. CubeMap
+    half3 irradiance = half3(0.0h, 0.0h, 0.0h);
+    half3 reflectVector = reflect(-inputData.viewDirectionWS, normal);
+    half mip = PerceptualRoughnessToMipmapLevel(brdfData.perceptualRoughness);
+    half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
+    irradiance = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
+
+    half NoV = saturate(dot(normal, inputData.viewDirectionWS));
+    half fresnelTerm = Pow4(1.0 - NoV);
+    half3 envCubeMapColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
+
     // Calculate Final Color
     fragPBRColor = lightingData.mainLightColor;
+    fragPBRColor += lerp(envCubeMapColor, envColor, _UseEnvColor);
 
 // #endif
 
