@@ -130,20 +130,20 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
 
     /* 2. Environment Light (Color or CubeMap) */
+    half3 reflectVector = reflect(-inputData.viewDirectionWS, normal);
+    half NoV = saturate(dot(normal, inputData.viewDirectionWS));
+    half fresnelTerm = Pow4(1.0 - NoV);
     // i. Color
     half3 envColor = _GlossyEnvironmentColor.rgb * aoFactor.indirectAmbientOcclusion;
+    envColor = envColor * EnvironmentBRDFSpecular(brdfData, fresnelTerm);
 
     // ii. CubeMap
     half3 irradiance = half3(0.0h, 0.0h, 0.0h);
-    half3 reflectVector = reflect(-inputData.viewDirectionWS, normal);
     half mip = PerceptualRoughnessToMipmapLevel(brdfData.perceptualRoughness);
     half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
     irradiance = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
+    half3 envCubeMapColor = irradiance * EnvironmentBRDFSpecular(brdfData, fresnelTerm);
 
-    half NoV = saturate(dot(normal, inputData.viewDirectionWS));
-    half fresnelTerm = Pow4(1.0 - NoV);
-    half3 envCubeMapColor = EnvironmentBRDF(brdfData, 0, irradiance, fresnelTerm);
-    
 
     // Calculate Final Color
     fragPBRColor = lightingData.mainLightColor;
