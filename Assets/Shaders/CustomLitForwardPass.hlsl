@@ -142,7 +142,8 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
     half NoV = saturate(dot(normal, inputData.viewDirectionWS));
     half fresnelTerm = Pow4(1.0 - NoV);
-    half3 envCubeMapColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
+    half3 envCubeMapColor = EnvironmentBRDF(brdfData, 0, irradiance, fresnelTerm);
+    
 
     // Calculate Final Color
     fragPBRColor = lightingData.mainLightColor;
