@@ -129,6 +129,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     // Diffuse = Lambert, Specular = Minimalist CookTorrance
     lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
 
+
     /* 2. Environment Light (Color or CubeMap) */
     half3 reflectVector = reflect(-inputData.viewDirectionWS, normal);
     half NoV = saturate(dot(normal, inputData.viewDirectionWS));
@@ -145,9 +146,23 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     half3 envCubeMapColor = irradiance * EnvironmentBRDFSpecular(brdfData, fresnelTerm);
 
 
+    /* 3. Static GI */
+    // i. Light Map or Light Probe is computed by InitializeInputData()
+    MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
+    
+    // ii. Reflection Probe
+    encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVector, mip));
+    irradiance = DecodeHDREnvironment(encodedIrradiance, unity_SpecCube0_HDR);
+    
+    // If we want to belend reflection probes, it can be done with CalculateIrradianceFromReflectionProbes API.
+    // irradiance = CalculateIrradianceFromReflectionProbes(reflectVector, inputData.positionWS, brdfData.perceptualRoughness, inputData.normalizedScreenSpaceUV);
+    half3 giColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
+
+
     // Calculate Final Color
     fragPBRColor = lightingData.mainLightColor;
     fragPBRColor += lerp(envCubeMapColor, envColor, _UseEnvColor);
+    fragPBRColor += giColor - envCubeMapColor;  // Remove duplicate 
 
 // #endif
 
