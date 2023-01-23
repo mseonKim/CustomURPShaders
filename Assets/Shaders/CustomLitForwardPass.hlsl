@@ -97,6 +97,8 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
 // TODO: Create custom GUI for keywords
 // #if defined(_SIMPLE_LIT_MODE)
+
+/* A. Apply BRDF step by step
     //////////////////////////////////////////////////////////
     //                      Blinn Phong                     //
     //////////////////////////////////////////////////////////
@@ -112,11 +114,22 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     giColor *= surfaceData.albedo;
 
     blinnPhongColor = diffuse + specular + giColor;
+*/
 
 // #else
+/** B. Step by step application of light resources */
+
     ///////////////////////////////////////////////////////////////////
     //                      UniversalFragmentPBR                     //
     ///////////////////////////////////////////////////////////////////
+    LightingData lightingData = CreateLightingData(inputData, surfaceData);
+
+    /* 1. Main Light (Directional Light) */
+    // Diffuse = Lambert, Specular = Minimalist CookTorrance
+    lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
+
+    // Calculate Final Color
+    fragPBRColor = lightingData.mainLightColor;
 
 // #endif
 
