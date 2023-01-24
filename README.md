@@ -12,12 +12,12 @@ Diffuse, Amibent, Specular, BlinnPhong
 
 ### b. MainLight + Env Lighting + Static GI + AdditionalLights
 
-(Metalic = 0.5 & Smoothness = 0.5)
+(No shadow, Metalic: 0.5, Smoothness: 0.5)
 
 ![URPPBR](/Images/URPPBR.png)
 
 
-### Custom Lit & URP Lit
+### Custom Lit vs URP Lit
 ![Comparison](/Images/Comparison.png)
 
 
