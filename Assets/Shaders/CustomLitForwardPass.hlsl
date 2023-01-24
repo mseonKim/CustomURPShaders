@@ -41,7 +41,11 @@ void InitializeInputData(Varyings input, out InputData inputData)
     inputData.positionWS = input.positionWS;
     inputData.normalWS = normalize(input.normalWS);
     inputData.viewDirectionWS = SafeNormalize(GetWorldSpaceNormalizeViewDir(input.positionWS));
-    inputData.shadowCoord = 0;
+#if defined(MAIN_LIGHT_CALCULATE_SHADOWS)
+    inputData.shadowCoord = TransformWorldToShadowCoord(inputData.positionWS);
+#else
+    inputData.shadowCoord = float4(0, 0, 0, 0);
+#endif
     inputData.fogCoord = 0;
     inputData.vertexLighting = half3(0, 0, 0);
     inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, inputData.normalWS);;
@@ -88,13 +92,14 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     InitializeBRDFData(surfaceData, brdfData);
 
 
-    Light mainLight = GetMainLight();
+    half4 shadowMask = CalculateShadowMask(inputData);
+    AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
+    Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
     half3 normal = inputData.normalWS;
 
     half4 finalColor = half4(0, 0, 0, surfaceData.alpha);
     half3 blinnPhongColor = 0;
     half3 fragPBRColor = 0;
-    AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
 
 // TODO: Create custom GUI for keywords
 // #if defined(_SIMPLE_LIT_MODE)
@@ -131,11 +136,12 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
 
     /* 2. Environment Light (Color or CubeMap) */
+    half occlusion = aoFactor.indirectAmbientOcclusion;
     half3 reflectVector = reflect(-inputData.viewDirectionWS, normal);
     half NoV = saturate(dot(normal, inputData.viewDirectionWS));
     half fresnelTerm = Pow4(1.0 - NoV);
     // i. Color
-    half3 envColor = _GlossyEnvironmentColor.rgb * aoFactor.indirectAmbientOcclusion;
+    half3 envColor = _GlossyEnvironmentColor.rgb * occlusion;
     envColor = envColor * EnvironmentBRDFSpecular(brdfData, fresnelTerm);
 
     // ii. CubeMap
@@ -143,7 +149,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     half mip = PerceptualRoughnessToMipmapLevel(brdfData.perceptualRoughness);
     half4 encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(_GlossyEnvironmentCubeMap, sampler_GlossyEnvironmentCubeMap, reflectVector, mip));
     irradiance = DecodeHDREnvironment(encodedIrradiance, _GlossyEnvironmentCubeMap_HDR);
-    half3 envCubeMapColor = irradiance * EnvironmentBRDFSpecular(brdfData, fresnelTerm);
+    half3 envCubeMapColor = irradiance * EnvironmentBRDFSpecular(brdfData, fresnelTerm) * occlusion;
 
 
     /* 3. Static GI */
@@ -157,7 +163,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVector, mip));
     irradiance = DecodeHDREnvironment(encodedIrradiance, unity_SpecCube0_HDR);
 #endif
-    half3 giColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
+    half3 giColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm) * occlusion;
 
 
     /* 4. Dynamic Lights */
@@ -165,7 +171,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     uint pixelLightCount = GetAdditionalLightsCount();
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
-        Light light = GetAdditionalLight(lightIndex, inputData.positionWS);
+        Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
         lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, light, normal, inputData.viewDirectionWS);
     LIGHT_LOOP_END
 #endif
@@ -176,6 +182,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     fragPBRColor += lerp(envCubeMapColor, envColor, _UseEnvColor);
     fragPBRColor += giColor - envCubeMapColor;  // Remove duplicate
     fragPBRColor += lightingData.additionalLightsColor;
+    fragPBRColor += lightingData.emissionColor;
 
 // #endif
 

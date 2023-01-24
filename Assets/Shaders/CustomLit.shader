@@ -8,7 +8,7 @@ Shader "Custom/CustomLit"
 
         // Custom Lit Values
         _SpecColor("Specular", Color) = (0.5, 0.5, 0.5, 1)
-        _EmissionColor("EmissionColor", Color) = (0.2, 0.2, 0.2, 1)
+        [HDR] _EmissionColor("EmissionColor", Color) = (0, 0, 0)
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
 
@@ -68,8 +68,11 @@ Shader "Custom/CustomLit"
 
             // -------------------------------------
             // Universal Pipeline keywords
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
 
             // -------------------------------------
             // Unity defined keywords
@@ -81,12 +84,57 @@ Shader "Custom/CustomLit"
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fragment _ _WRITE_RENDERING_LAYERS
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
 
             #pragma vertex CustomPassVertex
             #pragma fragment CustomPassFragment
 
             #include "CustomLitInput.hlsl"
             #include "CustomLitForwardPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags{"LightMode" = "ShadowCaster"}
+
+            ZWrite On
+            ZTest LEqual
+            ColorMask 0
+            Cull[_Cull]
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+
+            // -------------------------------------
+            // Universal Pipeline keywords
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+
+            // This is used during shadow map generation to differentiate between directional and punctual light shadows, as they use different formulas to apply Normal Bias
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+
+            #pragma vertex ShadowPassVertex
+            #pragma fragment ShadowPassFragment
+
+            #include "CustomLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
             ENDHLSL
         }
 
