@@ -62,10 +62,14 @@ Shader "Custom/CustomLit"
             #pragma shader_feature_local_fragment _ALPHAMODULATE_ON
 
             // ---------------------------
-            // Custom Keywords
+            // Material Keywords
             // #pragma shader_feature_local_fragment _EMISSION
             // #pragma shader_feature_local_fragment _SPECULAR_SETUP
+
+            // -------------------------------------
+            // Universal Pipeline keywords
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
 
             // -------------------------------------
             // Unity defined keywords

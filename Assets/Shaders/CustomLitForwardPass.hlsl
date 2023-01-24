@@ -151,11 +151,12 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI);
     
     // ii. Reflection Probe
+#if defined(_REFLECTION_PROBE_BLENDING)
+    irradiance = CalculateIrradianceFromReflectionProbes(reflectVector, inputData.positionWS, brdfData.perceptualRoughness, inputData.normalizedScreenSpaceUV);
+#else
     encodedIrradiance = half4(SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVector, mip));
     irradiance = DecodeHDREnvironment(encodedIrradiance, unity_SpecCube0_HDR);
-    
-    // If we want to belend reflection probes, it can be done with CalculateIrradianceFromReflectionProbes API.
-    // irradiance = CalculateIrradianceFromReflectionProbes(reflectVector, inputData.positionWS, brdfData.perceptualRoughness, inputData.normalizedScreenSpaceUV);
+#endif
     half3 giColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
 
 
