@@ -94,6 +94,7 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
     half4 shadowMask = CalculateShadowMask(inputData);
     AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
+    uint meshRenderingLayers = GetMeshRenderingLayer();
     Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
     half3 normal = inputData.normalWS;
 
@@ -132,8 +133,12 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
     /* 1. Main Light (Directional Light) */
     // Diffuse = Lambert, Specular = Minimalist CookTorrance
-    lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
-
+#ifdef _LIGHT_LAYERS
+    if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
+#endif
+    {
+        lightingData.mainLightColor = LightingPhysicallyBased(brdfData, mainLight, normal, inputData.viewDirectionWS);
+    }
 
     /* 2. Environment Light (Color or CubeMap) */
     half occlusion = aoFactor.indirectAmbientOcclusion;
@@ -172,7 +177,12 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
         Light light = GetAdditionalLight(lightIndex, inputData, shadowMask, aoFactor);
-        lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, light, normal, inputData.viewDirectionWS);
+#ifdef _LIGHT_LAYERS
+        if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
+#endif
+        {
+            lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, light, normal, inputData.viewDirectionWS);
+        }
     LIGHT_LOOP_END
 #endif
 
