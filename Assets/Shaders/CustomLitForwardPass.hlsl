@@ -159,10 +159,22 @@ void CustomPassFragment(Varyings input , out half4 outColor : SV_Target0)
     half3 giColor = EnvironmentBRDF(brdfData, inputData.bakedGI, irradiance, fresnelTerm);
 
 
+    /* 4. Dynamic Lights */
+#if defined(_ADDITIONAL_LIGHTS)
+    uint pixelLightCount = GetAdditionalLightsCount();
+
+    LIGHT_LOOP_BEGIN(pixelLightCount)
+        Light light = GetAdditionalLight(lightIndex, inputData.positionWS);
+        lightingData.additionalLightsColor += LightingPhysicallyBased(brdfData, light, normal, inputData.viewDirectionWS);
+    LIGHT_LOOP_END
+#endif
+
+
     // Calculate Final Color
     fragPBRColor = lightingData.mainLightColor;
     fragPBRColor += lerp(envCubeMapColor, envColor, _UseEnvColor);
-    fragPBRColor += giColor - envCubeMapColor;  // Remove duplicate 
+    fragPBRColor += giColor - envCubeMapColor;  // Remove duplicate
+    fragPBRColor += lightingData.additionalLightsColor;
 
 // #endif
 

@@ -65,6 +65,7 @@ Shader "Custom/CustomLit"
             // Custom Keywords
             // #pragma shader_feature_local_fragment _EMISSION
             // #pragma shader_feature_local_fragment _SPECULAR_SETUP
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
 
             // -------------------------------------
             // Unity defined keywords
