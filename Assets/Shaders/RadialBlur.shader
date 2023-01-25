@@ -2,8 +2,9 @@ Shader "Custom/RadialBlur"
 {
     Properties
     {
-        _SampleCount("SampleCount", Float) = 16
-        _Intensity("Intensity", Range(0.0, 1.0)) = 0.5
+        _SampleCount("SampleCount", Float) = 32
+        _Intensity("Intensity", Range(0.0, 1.0)) = 0.25
+        _CenterPos("CenterPos", Vector) = (0.5, 0.5, 0, 0)
     }
     
     SubShader
@@ -30,6 +31,7 @@ Shader "Custom/RadialBlur"
 
             float _SampleCount;
             float _Intensity;
+            float4 _CenterPos;
 
             Varyings RadialBlurVert(Attributes input)
             {
@@ -57,7 +59,7 @@ Shader "Custom/RadialBlur"
                 half3 color = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_BlitTexture, uv).xyz;
                 half3 finalColor = color;
 
-                float2 v = float2(0.5, 0.5) - uv;
+                float2 v = _CenterPos.xy - uv;
                 half dist = length(v);
                 float2 dir = normalize(v);
                 float2 offset = dir * rcp(_SampleCount) * _Intensity * dist;

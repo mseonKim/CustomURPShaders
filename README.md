@@ -22,3 +22,7 @@ Diffuse, Amibent, Specular, BlinnPhong
 
 
 ## 2. Custom Render Pass
+### Radial Blur Renderer Feature
+Custom Renderer Feature based on FullScreenPassRendererFeature
+
+![RadialBlur](/Images/RadialBlur.png)
