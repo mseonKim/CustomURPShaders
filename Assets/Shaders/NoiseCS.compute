@@ -1,0 +1,21 @@
+#pragma kernel NoiseCSMain
+
+#define N 32
+
+Buffer<int2> gSize;
+RWTexture2D<float4> gOutput;
+
+float4 random(float2 uv)
+{
+    float r = frac(sin(dot(uv,float2(12.9898,78.233)))*43758.5453123);
+    return float4(r, r, r, 1.0);
+}
+
+[numthreads(N, N, 1)]
+void NoiseCSMain(int3 dtid: SV_DISPATCHTHREADID)
+{
+    int x = min(dtid.x, gSize[0].x);
+    int y = min(dtid.y, gSize[0].y);
+    float2 uv = float2(x, y);
+    gOutput[uv] = random(uv);
+}
