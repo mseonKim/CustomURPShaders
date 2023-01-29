@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: NoiseTextureRendererFeature
   m_EditorClassIdentifier: 
   m_Active: 1
-  injectionPoint: 600
+  injectionPoint: 300
   computeShader: {fileID: 7200000, guid: 02d13c24633b27642b4d4b4bf536a17f, type: 3}
   targetMaterial: {fileID: 2100000, guid: b4e82dea0b1db4748a45f9b03716fa67, type: 2}
   size: 0004000000040000

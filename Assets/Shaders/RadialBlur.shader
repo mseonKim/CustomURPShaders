@@ -20,6 +20,7 @@ Shader "Custom/RadialBlur"
             Cull Off
 
             HLSLPROGRAM
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex RadialBlurVert
             #pragma fragment RadialBlurFragment
 

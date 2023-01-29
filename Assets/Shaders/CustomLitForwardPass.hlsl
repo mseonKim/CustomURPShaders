@@ -48,7 +48,7 @@ void InitializeInputData(Varyings input, out InputData inputData)
 #endif
     inputData.fogCoord = 0;
     inputData.vertexLighting = half3(0, 0, 0);
-    inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, inputData.normalWS);;
+    inputData.bakedGI = SAMPLE_GI(input.staticLightmapUV, input.vertexSH, inputData.normalWS);
     inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(input.positionCS);
     inputData.shadowMask = half4(1, 1, 1, 1);
 }

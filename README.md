@@ -26,3 +26,11 @@ Diffuse, Amibent, Specular, BlinnPhong
 Custom Renderer Feature based on FullScreenPassRendererFeature
 
 ![RadialBlur](/Images/RadialBlur.png)
+
+
+###
+Analyze PP through the Frame Debugger & Render doc
+Texture (+ Render Target)
+Shader Variable
+Command Stack
+Draw Call (+Set Render Pass) 

@@ -26,7 +26,7 @@ public class RadialBlurRendererFeature : ScriptableRendererFeature
             Debug.LogWarningFormat("Missing Radiar Blur effect Material");
             return;
         }
-        m_RadialBlurPass.Setup(passMaterial, "RadirBlurPassRendererFeature", renderingData);
+        m_RadialBlurPass.Setup(passMaterial, "RadialBlurPassRendererFeature", renderingData);
         renderer.EnqueuePass(m_RadialBlurPass);
     }
 
@@ -48,10 +48,10 @@ public class RadialBlurRendererFeature : ScriptableRendererFeature
         public void Setup(Material mat, string featureName, in RenderingData renderingData)
         {
             m_PassMaterial = mat;
-            m_ProfilingSampler ??= new ProfilingSampler(featureName);
+            m_ProfilingSampler = new ProfilingSampler(featureName);
             var colorCopyDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             colorCopyDescriptor.depthBufferBits = (int) DepthBits.None;
-            RenderingUtils.ReAllocateIfNeeded(ref m_CopiedColor, colorCopyDescriptor, name: "_RadiarBlurPassColorCopy");
+            RenderingUtils.ReAllocateIfNeeded(ref m_CopiedColor, colorCopyDescriptor, name: "_RadialBlurPassColorCopy");
             m_PassData ??= new PassData();
         }
 
@@ -80,7 +80,7 @@ public class RadialBlurRendererFeature : ScriptableRendererFeature
             var cmd = CommandBufferPool.Get();
             var cameraData = renderingData.cameraData;
 
-            // using (new ProfilingScope(cmd, passData.profilingSampler))
+            using (new ProfilingScope(cmd, passData.profilingSampler))
             {
                 var source = cameraData.renderer.cameraColorTargetHandle;
                 Blitter.BlitCameraTexture(cmd, source, passData.copiedColor);
@@ -88,9 +88,9 @@ public class RadialBlurRendererFeature : ScriptableRendererFeature
 
                 CoreUtils.SetRenderTarget(cmd, cameraData.renderer.cameraColorTargetHandle);
                 CoreUtils.DrawFullScreen(cmd, passData.effectMaterial);
-                context.ExecuteCommandBuffer(cmd);
-                cmd.Clear();
             }
+            context.ExecuteCommandBuffer(cmd);
+            cmd.Clear();
         }
 
 
